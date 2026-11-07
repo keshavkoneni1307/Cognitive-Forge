@@ -1,329 +1,418 @@
 (() => {
   "use strict";
 
-  const CHAT_API = "/api/chat";
-  const STORAGE_KEY = "cognitiveForgeChatHistory";
+  // Avoid creating the chatbot twice.
+  if (document.getElementById("forge-chat-launcher")) return;
+
+  const API_URL = "/api/chat";
 
   let history = [];
-  let isSending = false;
-
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    if (Array.isArray(saved)) history = saved.slice(-20);
-  } catch {
-    history = [];
-  }
+  let isLoading = false;
 
   const styles = `
     #forge-chat-launcher {
-      position: fixed; right: 24px; bottom: 24px; z-index: 9998;
-      width: 62px; height: 62px; border: 0; border-radius: 50%;
-      background: linear-gradient(135deg,#527df5,#39c99a);
-      color: white; font-size: 27px; cursor: pointer;
-      box-shadow: 0 8px 28px #0006;
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 99998;
+      width: 62px;
+      height: 62px;
+      border: 0;
+      border-radius: 50%;
+      background: linear-gradient(135deg,#5578ff,#35cfa3);
+      color: white;
+      font-size: 27px;
+      cursor: pointer;
+      box-shadow: 0 8px 28px #0005;
     }
-    #forge-chat-panel {
-      position: fixed; right: 24px; bottom: 98px; z-index: 9999;
-      width: min(390px, calc(100vw - 28px)); height: min(590px, 75vh);
-      min-height: 400px; display: none; flex-direction: column;
-      background: #111a30; color: #f4f6ff;
-      border: 1px solid #2b3959; border-radius: 18px;
-      box-shadow: 0 18px 55px #0009; overflow: hidden;
+
+    #forge-chat-window {
+      position: fixed;
+      right: 24px;
+      bottom: 100px;
+      z-index: 99999;
+      width: 390px;
+      max-width: calc(100vw - 28px);
+      height: min(620px, calc(100vh - 125px));
+      background: #141c35;
+      color: #eef2ff;
+      border: 1px solid #34405f;
+      border-radius: 22px;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 18px 60px #0008;
+      font-family: Arial, sans-serif;
+    }
+
+    #forge-chat-window.forge-open {
+      display: flex;
+    }
+
+    .forge-header {
+      padding: 17px;
+      background: #1c2745;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #34405f;
+    }
+
+    .forge-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 15px;
+      display: grid;
+      place-items: center;
+      background: #30446c;
+      font-size: 25px;
+    }
+
+    .forge-heading {
+      flex: 1;
+    }
+
+    .forge-heading strong {
+      display: block;
+      font-size: 19px;
+    }
+
+    .forge-heading small {
+      color: #68dcae;
+      display: block;
+      margin-top: 5px;
+    }
+
+    .forge-header button {
+      border: 0;
+      background: transparent;
+      color: white;
+      font-size: 25px;
+      cursor: pointer;
+      padding: 5px;
+    }
+
+    #forge-chat-messages {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 17px;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+      scroll-behavior: smooth;
+    }
+
+    .forge-message {
+      max-width: 88%;
+      padding: 13px 15px;
+      border-radius: 15px;
+      line-height: 1.55;
+      font-size: 15px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .forge-bot {
+      align-self: flex-start;
+      background: #25314f;
+      border-bottom-left-radius: 5px;
+    }
+
+    .forge-user {
+      align-self: flex-end;
+      background: #5574ed;
+      color: white;
+      border-bottom-right-radius: 5px;
+    }
+
+    .forge-error {
+      background: #512e3b;
+      color: #ffe1e7;
+    }
+
+    .forge-suggestions {
+      padding: 8px 15px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+    }
+
+    .forge-suggestions button {
+      white-space: nowrap;
+      border: 1px solid #3b4969;
+      border-radius: 30px;
+      background: #202c49;
+      color: #dce5ff;
+      padding: 10px 13px;
+      cursor: pointer;
+    }
+
+    .forge-input-area {
+      padding: 13px;
+      border-top: 1px solid #34405f;
+      display: flex;
+      gap: 9px;
+      background: #18223e;
+    }
+
+    #forge-chat-input {
+      flex: 1;
+      min-width: 0;
+      resize: none;
+      height: 48px;
+      max-height: 110px;
+      border-radius: 16px;
+      border: 1px solid #3b4969;
+      background: #111a30;
+      color: white;
+      padding: 13px;
+      outline: none;
+      font-size: 15px;
       font-family: inherit;
     }
-    #forge-chat-panel.forge-open { display: flex; }
-    .forge-chat-header {
-      padding: 16px; display: flex; align-items: center;
-      justify-content: space-between; background: #192541;
-      border-bottom: 1px solid #2b3959;
-    }
-    .forge-chat-brand { display:flex; gap:10px; align-items:center; }
-    .forge-chat-avatar {
-      width: 38px; height: 38px; display:grid; place-items:center;
-      border-radius: 12px; background:#29436a; font-size:20px;
-    }
-    .forge-chat-title { font-weight:700; font-size:15px; }
-    .forge-chat-status { color:#63dca8; font-size:11px; margin-top:3px; }
-    .forge-chat-header button {
-      border:0; background:transparent; color:#fff;
-      font-size:23px; cursor:pointer;
-    }
-    #forge-chat-messages {
-      flex:1; overflow-y:auto; padding:14px;
-      display:flex; flex-direction:column; gap:12px;
-    }
-    .forge-message {
-      max-width:88%; padding:11px 13px; border-radius:13px;
-      font-size:13px; line-height:1.55; overflow-wrap:anywhere;
-      white-space:pre-wrap;
-    }
-    .forge-message.bot {
-      align-self:flex-start; background:#202e4b; color:#f1f4ff;
-      border-bottom-left-radius:4px;
-    }
-    .forge-message.user {
-      align-self:flex-end; background:#426fe1; color:white;
-      border-bottom-right-radius:4px;
-    }
-    .forge-message.error { background:#512d3a; color:#ffdce3; }
-    .forge-chat-quick {
-      display:flex; gap:7px; overflow-x:auto; padding:0 12px 10px;
-    }
-    .forge-chat-quick button {
-      white-space:nowrap; border:1px solid #344362; color:#dce5ff;
-      background:#192541; border-radius:20px; padding:7px 10px;
-      font-size:11px; cursor:pointer;
-    }
-    .forge-chat-compose {
-      display:flex; gap:8px; padding:12px;
-      border-top:1px solid #2b3959; background:#151f36;
-    }
-    #forge-chat-input {
-      flex:1; min-width:0; resize:none; max-height:90px;
-      border:1px solid #354566; outline:none; border-radius:12px;
-      padding:11px; background:#0e172b; color:white;
-      font:inherit; font-size:13px;
-    }
+
     #forge-chat-send {
-      width:44px; border:0; border-radius:12px;
-      background:#527df5; color:white; font-size:19px; cursor:pointer;
+      width: 52px;
+      height: 48px;
+      border: 0;
+      border-radius: 15px;
+      background: #5b78f5;
+      color: white;
+      font-size: 23px;
+      cursor: pointer;
     }
-    #forge-chat-send:disabled { opacity:.5; cursor:not-allowed; }
-    .forge-chat-hint {
-      padding:0 12px 9px; background:#151f36;
-      color:#8190ad; font-size:10px;
+
+    #forge-chat-send:disabled {
+      opacity: .5;
+      cursor: not-allowed;
     }
-    @media(max-width:520px) {
-      #forge-chat-launcher { right:16px; bottom:16px; }
-      #forge-chat-panel {
-        right:10px; bottom:88px; width:calc(100vw - 20px);
-        height:min(72vh,590px);
+
+    .forge-disclaimer {
+      padding: 0 15px 12px;
+      color: #92a1c2;
+      font-size: 12px;
+      background: #18223e;
+      line-height: 1.5;
+    }
+
+    @media(max-width: 500px) {
+      #forge-chat-launcher {
+        right: 16px;
+        bottom: 16px;
+      }
+
+      #forge-chat-window {
+        right: 8px;
+        bottom: 88px;
+        width: calc(100vw - 16px);
+        height: min(680px, calc(100vh - 105px));
       }
     }
   `;
 
-  const styleElement = document.createElement("style");
-  styleElement.textContent = styles;
-  document.head.appendChild(styleElement);
+  const style = document.createElement("style");
+  style.textContent = styles;
+  document.head.appendChild(style);
 
   const launcher = document.createElement("button");
   launcher.id = "forge-chat-launcher";
   launcher.type = "button";
-  launcher.setAttribute("aria-label", "Open Forge AI Tutor");
-  launcher.title = "Ask Forge AI";
   launcher.textContent = "✦";
+  launcher.setAttribute("aria-label", "Open Forge AI Tutor");
 
-  const panel = document.createElement("section");
-  panel.id = "forge-chat-panel";
-  panel.setAttribute("aria-label", "Forge AI Tutor chat");
+  const windowBox = document.createElement("section");
+  windowBox.id = "forge-chat-window";
+  windowBox.setAttribute("aria-label", "Forge AI Tutor chat");
 
-  panel.innerHTML = `
-    <div class="forge-chat-header">
-      <div class="forge-chat-brand">
-        <div class="forge-chat-avatar">✦</div>
-        <div>
-          <div class="forge-chat-title">Forge AI Tutor</div>
-          <div class="forge-chat-status">● Your learning assistant</div>
-        </div>
+  windowBox.innerHTML = `
+    <div class="forge-header">
+      <div class="forge-avatar">✦</div>
+      <div class="forge-heading">
+        <strong>Forge AI Tutor</strong>
+        <small>● Your learning assistant</small>
       </div>
-      <button type="button" id="forge-chat-clear" title="Clear chat"
-        aria-label="Clear chat">↻</button>
-      <button type="button" id="forge-chat-close" title="Close chat"
-        aria-label="Close chat">×</button>
+      <button type="button" id="forge-chat-reset" title="New chat">↻</button>
+      <button type="button" id="forge-chat-close" title="Close">×</button>
     </div>
+
     <div id="forge-chat-messages" aria-live="polite"></div>
-    <div class="forge-chat-quick">
-      <button type="button" data-prompt="Explain this concept simply.">
-        Explain simply
-      </button>
-      <button type="button" data-prompt="Give me an example.">
-        Give an example
-      </button>
-      <button type="button" data-prompt="Ask me a practice question on this topic.">
-        Practice question
-      </button>
+
+    <div class="forge-suggestions">
+      <button type="button" data-prompt="Explain this concept simply.">Explain simply</button>
+      <button type="button" data-prompt="Give me a simple real-life example.">Give an example</button>
+      <button type="button" data-prompt="Ask me one practice question on this topic.">Practice question</button>
     </div>
-    <form class="forge-chat-compose" id="forge-chat-form">
-      <textarea id="forge-chat-input" rows="1"
+
+    <form class="forge-input-area" id="forge-chat-form">
+      <textarea
+        id="forge-chat-input"
         placeholder="Ask in English, Hindi, Hinglish, Telugu..."
-        aria-label="Type your doubt"></textarea>
-      <button id="forge-chat-send" type="submit" aria-label="Send message">
-        ➤
-      </button>
+        aria-label="Ask your doubt"
+        maxlength="5000"
+        required
+      ></textarea>
+      <button id="forge-chat-send" type="submit" aria-label="Send">➤</button>
     </form>
-    <div class="forge-chat-hint">
+
+    <div class="forge-disclaimer">
       Forge AI can make mistakes. Verify important answers with your study material.
     </div>
   `;
 
-  document.body.append(launcher, panel);
+  document.body.appendChild(launcher);
+  document.body.appendChild(windowBox);
 
-  const messagesBox = panel.querySelector("#forge-chat-messages");
-  const input = panel.querySelector("#forge-chat-input");
-  const sendButton = panel.querySelector("#forge-chat-send");
+  const messagesBox = windowBox.querySelector("#forge-chat-messages");
+  const input = windowBox.querySelector("#forge-chat-input");
+  const sendButton = windowBox.querySelector("#forge-chat-send");
+  const form = windowBox.querySelector("#forge-chat-form");
 
-  function getLearningContext() {
-    const findValue = selectors => {
-      for (const selector of selectors) {
-        const element = document.querySelector(selector);
-        if (element && element.value) return element.value;
-      }
-      return "";
-    };
+  function addMessage(text, type = "bot") {
+    const message = document.createElement("div");
+    message.className = `forge-message forge-${type}`;
+    message.textContent = text;
 
-    const level =
-      findValue([
-        "#levelSelect", "#studentLevel", "#subjectLevel",
-        '[name="level"]'
-      ]) ||
-      document.querySelector(".workspace-card")?.innerText ||
-      "Not specified";
-
-    const subject =
-      findValue([
-        "#subjectSelect", "#subject", "#practiceSubject",
-        '[name="subject"]'
-      ]) || "General";
-
-    return {
-      level: String(level).trim().slice(0, 100),
-      subject: String(subject).trim().slice(0, 100)
-    };
-  }
-
-  function saveHistory() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(-20)));
-    } catch (error) {
-      console.warn("Could not save chat history:", error);
-    }
-  }
-
-  function addMessage(text, role, extraClass = "") {
-    const bubble = document.createElement("div");
-    bubble.className = `forge-message ${role} ${extraClass}`.trim();
-    bubble.textContent = text;
-    messagesBox.appendChild(bubble);
+    messagesBox.appendChild(message);
     messagesBox.scrollTop = messagesBox.scrollHeight;
-    return bubble;
+
+    return message;
   }
 
-  function renderWelcome() {
-    messagesBox.innerHTML = "";
+  function showWelcome() {
     addMessage(
       "Namaste! 👋 I'm Forge AI Tutor.\n\nAsk your doubts in English, Hindi, Hinglish, Telugu, Tenglish, Tamil or another Indian language. I'll explain step by step!",
       "bot"
     );
   }
 
-  function renderSavedHistory() {
-    messagesBox.innerHTML = "";
-    if (!history.length) {
-      renderWelcome();
-      return;
-    }
-
-    history.forEach(item => {
-      addMessage(item.text, item.role === "user" ? "user" : "bot");
-    });
+  function openChat() {
+    windowBox.classList.add("forge-open");
+    launcher.style.display = "none";
+    input.focus();
   }
 
-  async function sendMessage(text) {
-    const message = String(text || "").trim();
-    if (!message || isSending) return;
+  function closeChat() {
+    windowBox.classList.remove("forge-open");
+    launcher.style.display = "block";
+  }
 
-    isSending = true;
-    input.value = "";
+  launcher.addEventListener("click", openChat);
+
+  windowBox.querySelector("#forge-chat-close")
+    .addEventListener("click", closeChat);
+
+  windowBox.querySelector("#forge-chat-reset")
+    .addEventListener("click", () => {
+      history = [];
+      messagesBox.innerHTML = "";
+      showWelcome();
+    });
+
+  async function sendMessage(text) {
+    text = String(text || "").trim();
+
+    if (!text || isLoading) return;
+
+    isLoading = true;
     sendButton.disabled = true;
 
-    addMessage(message, "user");
-    const pending = addMessage("Thinking... ✨", "bot");
+    addMessage(text, "user");
+
+    const loadingMessage = addMessage("Forge AI is thinking...", "bot");
+
+    const previousHistory = history.slice(-10);
 
     try {
-      const context = getLearningContext();
-
-      const response = await fetch(CHAT_API, {
+      const response = await fetch(API_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
-          message,
-          history: history.slice(-10),
-          level: context.level,
-          subject: context.subject
+          message: text,
+          history: previousHistory,
+          level: localStorage.getItem("forgeLevel") || "Student",
+          subject: localStorage.getItem("forgeSubject") || "General"
         })
       });
 
-      const data = await response.json();
+      const rawText = await response.text();
 
-      if (!response.ok) {
-        throw new Error(data.error || `Request failed (${response.status})`);
+      let data;
+
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        throw new Error(
+          response.status === 404
+            ? "Chat API not found. Please check that api/chat.js is deployed."
+            : `Server returned an invalid response (HTTP ${response.status}).`
+        );
       }
 
-      if (!data.answer || typeof data.answer !== "string") {
-        throw new Error("The AI returned an invalid response.");
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.error || `Request failed (HTTP ${response.status}).`
+        );
       }
 
-      pending.remove();
-      addMessage(data.answer, "bot");
+      if (!data.reply || typeof data.reply !== "string") {
+        throw new Error("The AI returned an empty answer. Please try again.");
+      }
+
+      loadingMessage.remove();
+
+      addMessage(data.reply, "bot");
 
       history.push(
-        { role: "user", text: message },
-        { role: "model", text: data.answer }
+        { role: "user", text },
+        { role: "assistant", text: data.reply }
       );
 
-      history = history.slice(-20);
-      saveHistory();
+      history = history.slice(-10);
 
     } catch (error) {
-      pending.remove();
+      loadingMessage.remove();
+
       addMessage(
-        error.message || "Something went wrong. Please try again.",
-        "bot",
+        error.message || "Unable to connect. Please try again.",
         "error"
       );
-      console.error("Forge AI:", error);
+
+      console.error("Forge AI Tutor:", error);
+
     } finally {
-      isSending = false;
+      isLoading = false;
       sendButton.disabled = false;
       input.focus();
     }
   }
 
-  launcher.addEventListener("click", () => {
-    panel.classList.toggle("forge-open");
-    if (panel.classList.contains("forge-open")) {
-      renderSavedHistory();
-      input.focus();
-    }
-  });
-
-  panel.querySelector("#forge-chat-close").addEventListener("click", () => {
-    panel.classList.remove("forge-open");
-  });
-
-  panel.querySelector("#forge-chat-clear").addEventListener("click", () => {
-    history = [];
-    saveHistory();
-    renderWelcome();
-  });
-
-  panel.querySelector("#forge-chat-form").addEventListener("submit", event => {
+  form.addEventListener("submit", event => {
     event.preventDefault();
-    sendMessage(input.value);
+
+    const text = input.value.trim();
+
+    if (!text) return;
+
+    input.value = "";
+    sendMessage(text);
   });
 
   input.addEventListener("keydown", event => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      sendMessage(input.value);
+      form.requestSubmit();
     }
   });
 
-  panel.querySelectorAll("[data-prompt]").forEach(button => {
+  windowBox.querySelectorAll("[data-prompt]").forEach(button => {
     button.addEventListener("click", () => {
       sendMessage(button.dataset.prompt);
     });
   });
 
-  renderWelcome();
+  showWelcome();
+
 })();
