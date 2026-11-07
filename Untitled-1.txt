@@ -1,0 +1,12 @@
+cognitive-forge/
+│
+├── index.html
+├── style.css
+├── script.js
+├── package.json
+├── vercel.json
+├── .env
+├── .gitignore
+│
+└── api/
+    └── generate-questions.js

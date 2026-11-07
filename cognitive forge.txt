@@ -1,0 +1,8 @@
+Cognitive Forge/
+├── api/
+│   └── generate-questions.js
+├── index.html
+├── style.css
+├── script.js
+├── package.json
+└── vercel.json

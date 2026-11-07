@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#10182b">
+  <title>Cognitive Forge | AI Learning Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="#" onclick="showPage('dashboard')">
+      <span class="brand-icon">CF</span>
+      <span>Cognitive<span>Forge</span></span>
+    </a>
+
+    <div class="profile">
+      <div class="avatar">S</div>
+      <div><b>Student Workspace</b><small id="profileLevel">Engineering</small></div>
+    </div>
+
+    <p class="nav-heading">LEARNING</p>
+    <nav>
+      <button class="nav active" data-page="dashboard" onclick="showPage('dashboard')">⌂ Dashboard</button>
+      <button class="nav" data-page="subjects" onclick="showPage('subjects')">▤ My Subjects</button>
+      <button class="nav" data-page="ppt" onclick="showPage('ppt')">⇧ PPT Analyzer</button>
+      <button class="nav" data-page="practice" onclick="showPage('practice')">✳ Practice Lab</button>
+      <button class="nav" data-page="assignments" onclick="showPage('assignments')">☷ Assignments</button>
+      <button class="nav" data-page="planner" onclick="showPage('planner')">▦ Study Planner</button>
+      <button class="nav" data-page="notes" onclick="showPage('notes')">✎ My Notes</button>
+      <button class="nav" data-page="analytics" onclick="showPage('analytics')">▥ Performance</button>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="side-tip">
+        <span>✦</span>
+        <b>Keep forging ahead.</b>
+        <p>Consistency today builds confidence tomorrow.</p>
+      </div>
+      <small>COGNITIVE FORGE · 2026</small>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+      <div>
+        <small id="breadcrumb">YOUR LEARNING SPACE</small>
+        <h1 id="pageHeading">Dashboard</h1>
+      </div>
+      <div class="top-actions"><span class="online-dot"></span> Learning workspace</div>
+    </header>
+
+    <!-- DASHBOARD -->
+    <section class="page active" id="dashboard">
+      <div class="hero">
+        <div class="hero-content">
+          <span class="eyebrow">YOUR PERSONAL AI LEARNING STUDIO</span>
+          <h2>Learn smarter.<br><span>Think deeper. Build better.</span></h2>
+          <p>Turn your syllabus, college presentations and learning goals into a personalised practice experience.</p>
+          <button class="primary-btn" onclick="showPage('subjects')">Explore subjects →</button>
+        </div>
+        <div class="hero-graphic">
+          <div class="glow"></div>
+          <div class="hero-symbol">✧</div>
+          <span class="float-label one">LEARN</span>
+          <span class="float-label two">PRACTISE</span>
+          <span class="float-label three">MASTER</span>
+        </div>
+      </div>
+
+      <div class="section-title">
+        <div><span class="eyebrow">GET STARTED</span><h2>Choose your education level</h2></div>
+        <span id="currentLevel">Engineering selected</span>
+      </div>
+
+      <div class="level-grid">
+        <button class="level-card" onclick="selectLevel('Class X')">
+          <span class="level-number">10</span>
+          <span><b>Class X</b><small>NCERT · Secondary</small></span>
+          <span class="arrow">↗</span>
+        </button>
+        <button class="level-card" onclick="selectLevel('Class XII')">
+          <span class="level-number">12</span>
+          <span><b>Class XII</b><small>NCERT · Senior Secondary</small></span>
+          <span class="arrow">↗</span>
+        </button>
+        <button class="level-card" onclick="selectLevel('Engineering')">
+          <span class="level-number">⌘</span>
+          <span><b>Engineering</b><small>Programming · College</small></span>
+          <span class="arrow">↗</span>
+        </button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat"><small>Available subjects</small><b id="statSubjects">4</b><span>▤</span></div>
+        <div class="stat"><small>Questions attempted</small><b id="statAttempted">0</b><span>✳</span></div>
+        <div class="stat"><small>Correct answers</small><b id="statCorrect">0</b><span>✓</span></div>
+        <div class="stat"><small>Pending tasks</small><b id="statPending">0</b><span>☷</span></div>
+      </div>
+
+      <div class="section-title">
+        <div><span class="eyebrow">YOUR CURRICULUM</span><h2>Continue learning</h2></div>
+        <button class="link-btn" onclick="showPage('subjects')">All subjects →</button>
+      </div>
+      <div class="subject-grid" id="dashboardSubjects"></div>
+    </section>
+
+    <!-- SUBJECTS -->
+    <section class="page" id="subjects">
+      <div class="page-intro">
+        <span class="eyebrow">YOUR CURRICULUM</span>
+        <h2>Explore subjects</h2>
+        <p>Select your level and start learning from structured topics.</p>
+      </div>
+      <div class="toolbar">
+        <select id="subjectLevel" onchange="selectLevel(this.value,false)">
+          <option>Class X</option>
+          <option>Class XII</option>
+          <option selected>Engineering</option>
+        </select>
+        <input id="subjectSearch" placeholder="Search subjects..." oninput="renderSubjects()">
+      </div>
+      <div class="subject-grid" id="allSubjects"></div>
+    </section>
+
+    <!-- PPT ANALYZER -->
+    <section class="page" id="ppt">
+      <div class="page-intro">
+        <span class="eyebrow">YOUR MATERIAL. YOUR QUESTIONS.</span>
+        <h2>AI PPT Analyzer</h2>
+        <p>Upload your college presentations. AI identifies topics and generates questions based on your actual study material.</p>
+      </div>
+
+      <div class="two-column">
+        <div class="panel">
+          <h3>Upload your lecture PPT</h3>
+          <p class="muted">Supported format: PowerPoint (.pptx)</p>
+          <label class="dropzone" id="dropzone" for="pptFile">
+            <span class="upload-icon">⇧</span>
+            <b>Drop your presentation here</b>
+            <span>or click to browse</span>
+            <small>Maximum file size: 15 MB</small>
+            <input type="file" id="pptFile" accept=".pptx">
+          </label>
+          <div id="fileInfo" class="file-info"></div>
+
+          <div class="field">
+            <label>Subject</label>
+            <select id="pptSubject"></select>
+          </div>
+          <div class="field">
+            <label>Difficulty</label>
+            <select id="pptDifficulty">
+              <option>Easy</option><option selected>Medium</option>
+              <option>Hard</option><option>Mixed</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Number of questions</label>
+            <select id="pptCount">
+              <option>10</option><option>15</option><option selected>20</option>
+              <option>25</option><option>30</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Question format</label>
+            <select id="pptType">
+              <option value="mixed">Mixed questions</option>
+              <option value="mcq">MCQs</option>
+              <option value="conceptual">Conceptual</option>
+              <option value="coding">Coding and output</option>
+              <option value="case">Application based</option>
+            </select>
+          </div>
+          <button class="primary-btn full" id="analyzeBtn" disabled onclick="analyzePPT()">Analyze presentation →</button>
+        </div>
+
+        <div class="panel">
+          <h3>How Cognitive Forge works</h3>
+          <div class="process-step"><b>01</b><div><strong>Upload</strong><p>Upload your professor's PPT.</p></div></div>
+          <div class="process-step"><b>02</b><div><strong>Understand</strong><p>Extract slide text and identify topics.</p></div></div>
+          <div class="process-step"><b>03</b><div><strong>Review</strong><p>Choose the topics you want to practise.</p></div></div>
+          <div class="process-step"><b>04</b><div><strong>Generate</strong><p>Receive AI-generated questions and explanations.</p></div></div>
+          <div class="source-box">
+            <b>Learning source priority</b>
+            <p>Engineering: uploaded college PPTs. Class X/XII: NCERT-aligned syllabus and chapter topics. Cengage may be used as a supplementary reference.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel hidden" id="topicPanel">
+        <div class="section-title"><div><span class="eyebrow">ANALYSIS COMPLETE</span><h3>Topics detected in your PPT</h3></div><span id="topicCount"></span></div>
+        <p class="muted" id="slideInfo"></p>
+        <div id="topicList" class="topic-list"></div>
+        <div class="field">
+          <label>Additional instructions</label>
+          <textarea id="extraInstructions" rows="3" placeholder="Example: Focus on university exam-level questions and code output tracing."></textarea>
+        </div>
+        <button class="primary-btn" onclick="generatePPTQuestions()">Generate questions →</button>
+      </div>
+      <div id="pptQuiz"></div>
+    </section>
+
+    <!-- PRACTICE -->
+    <section class="page" id="practice">
+      <div class="page-intro">
+        <span class="eyebrow">TEST YOUR UNDERSTANDING</span>
+        <h2>Practice Lab</h2>
+        <p>Practise your syllabus with original AI-generated questions.</p>
+      </div>
+      <div class="panel">
+        <div class="field"><label>Subject</label><select id="practiceSubject"></select></div>
+        <div class="field"><label>Difficulty</label>
+          <select id="practiceDifficulty"><option>Easy</option><option selected>Medium</option><option>Hard</option><option>Mixed</option></select>
+        </div>
+        <div class="field"><label>Questions</label>
+          <select id="practiceCount"><option>10</option><option selected>20</option><option>25</option><option>30</option></select>
+        </div>
+        <div class="field"><label>Question type</label>
+          <select id="practiceType">
+            <option value="mixed">Mixed</option><option value="mcq">MCQs</option>
+            <option value="conceptual">Conceptual</option><option value="coding">Coding and output</option>
+          </select>
+        </div>
+        <button class="primary-btn" onclick="generatePractice()">Generate practice set →</button>
+      </div>
+      <div id="practiceQuiz"></div>
+    </section>
+
+    <!-- ASSIGNMENTS -->
+    <section class="page" id="assignments">
+      <div class="page-intro"><span class="eyebrow">SUBJECT WORK</span><h2>Assignments</h2><p>15 topic-based assignments for every subject.</p></div>
+      <div class="panel">
+        <div class="field"><label>Select subject</label><select id="assignmentSubject" onchange="renderAssignments()"></select></div>
+        <div id="assignmentList"></div>
+      </div>
+    </section>
+
+    <!-- PLANNER -->
+    <section class="page" id="planner">
+      <div class="page-intro"><span class="eyebrow">STAY CONSISTENT</span><h2>Study Planner</h2><p>Organise your study sessions and deadlines.</p></div>
+      <div class="panel">
+        <form id="taskForm">
+          <div class="field"><label>Task title</label><input id="taskTitle" required placeholder="e.g. Revise arrays"></div>
+          <div class="field"><label>Subject</label><select id="taskSubject"></select></div>
+          <div class="field"><label>Due date</label><input id="taskDate" type="date" required></div>
+          <button class="primary-btn">Add task</button>
+        </form>
+      </div>
+      <div class="panel"><h3>Your tasks</h3><div id="taskList"></div></div>
+    </section>
+
+    <!-- NOTES -->
+    <section class="page" id="notes">
+      <div class="page-intro"><span class="eyebrow">YOUR KNOWLEDGE BASE</span><h2>My Notes</h2></div>
+      <div class="panel">
+        <form id="noteForm">
+          <div class="field"><label>Title</label><input id="noteTitle" required></div>
+          <div class="field"><label>Subject</label><select id="noteSubject"></select></div>
+          <div class="field"><label>Notes</label><textarea id="noteText" rows="5" required></textarea></div>
+          <button class="primary-btn">Save note</button>
+        </form>
+      </div>
+      <div id="notesList" class="subject-grid"></div>
+    </section>
+
+    <!-- ANALYTICS -->
+    <section class="page" id="analytics">
+      <div class="page-intro"><span class="eyebrow">LEARNING INSIGHTS</span><h2>Your performance</h2></div>
+      <div class="stats-grid">
+        <div class="stat"><small>Attempted</small><b id="aAttempted">0</b></div>
+        <div class="stat"><small>Correct</small><b id="aCorrect">0</b></div>
+        <div class="stat"><small>Accuracy</small><b id="aAccuracy">0%</b></div>
+        <div class="stat"><small>Completed assignments</small><b id="aAssignments">0</b></div>
+      </div>
+      <div class="panel"><h3>Subject performance</h3><div id="performance"></div></div>
+      <div class="panel"><h3>Review incorrect answers</h3><div id="mistakes"></div></div>
+    </section>
+
+    <footer>© 2026 Cognitive Forge <span>Learn · Practise · Improve</span></footer>
+  </main>
+</div>
+
+<div id="toast" class="toast"></div>
+<script src="script.js"></script>
+</body>
+</html>
